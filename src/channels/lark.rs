@@ -1261,13 +1261,13 @@ impl LarkChannel {
 
 fn pick_uniform_index(len: usize) -> usize {
     debug_assert!(len > 0);
-    let upper = len as u64;
+    let upper = u64::try_from(len).expect("pool length must fit in u64");
     let reject_threshold = (u64::MAX / upper) * upper;
 
     loop {
         let value = rand::random::<u64>();
         if value < reject_threshold {
-            return (value % upper) as usize;
+            return usize::try_from(value % upper).expect("sampled index must fit in usize");
         }
     }
 }
@@ -2086,7 +2086,7 @@ mod tests {
     }
 
     #[test]
-    fn lark_from_lark_config_ignores_legacy_feishu_flag() {
+    fn lark_from_config_respects_legacy_feishu_flag() {
         use crate::config::schema::{LarkConfig, LarkReceiveMode};
 
         let cfg = LarkConfig {
@@ -2095,16 +2095,17 @@ mod tests {
             encrypt_key: None,
             verification_token: Some("vtoken789".into()),
             allowed_users: vec!["*".into()],
+            mention_only: false,
             use_feishu: true,
             receive_mode: LarkReceiveMode::Webhook,
             port: Some(9898),
         };
 
-        let ch = LarkChannel::from_lark_config(&cfg);
+        let ch = LarkChannel::from_config(&cfg);
 
-        assert_eq!(ch.api_base(), LARK_BASE_URL);
-        assert_eq!(ch.ws_base(), LARK_WS_BASE_URL);
-        assert_eq!(ch.name(), "lark");
+        assert_eq!(ch.api_base(), FEISHU_BASE_URL);
+        assert_eq!(ch.ws_base(), FEISHU_WS_BASE_URL);
+        assert_eq!(ch.name(), "feishu");
     }
 
     #[test]
@@ -2117,6 +2118,7 @@ mod tests {
             encrypt_key: None,
             verification_token: Some("vtoken789".into()),
             allowed_users: vec!["*".into()],
+            mention_only: false,
             receive_mode: LarkReceiveMode::Webhook,
             port: Some(9898),
         };
@@ -2289,6 +2291,7 @@ mod tests {
             encrypt_key: None,
             verification_token: Some("vtoken789".into()),
             allowed_users: vec!["*".into()],
+            mention_only: false,
             receive_mode: crate::config::schema::LarkReceiveMode::Webhook,
             port: Some(9898),
         };
